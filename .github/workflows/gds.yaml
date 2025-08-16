@@ -47,20 +47,28 @@ jobs:
     needs: gds
     runs-on: ubuntu-24.04
     environment:
-      name: github-pages  # ✅ Added this to fix deployment error
+      name: github-pages
     permissions:
       pages: write
       id-token: write
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
       - name: Generate Viewer
         uses: TinyTapeout/tt-gds-action/viewer@ttsky25a
         with:
           pdk: sky130
 
+      - name: List files for debug
+        run: ls -R
+
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./viewer
+          path: ./viewer  # Update this if `ls -R` shows a different path
 
   deploy:
     needs: viewer
