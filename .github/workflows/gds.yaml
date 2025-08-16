@@ -61,9 +61,10 @@ jobs:
           mkdir -p dependencies
           cp -r $(volare path fa87f8f4bbcc7255b6f0c0fb506960f531ae2392) dependencies/sky130
 
-      # 🔍 Update this path once you know where gate_level_netlist.v is
-      - name: Copy gate-level netlist
-        run: cp gate_level_netlist.v test/
+      - name: Copy gate-level netlist (auto locate)
+        run: |
+          mkdir -p test
+          cp $(find . -name "gate_level_netlist.v" | head -n 1) test/
 
       - name: Run GL test
         run: make GATES=yes PDK_ROOT=${{ env.PDK_ROOT }} -C test
