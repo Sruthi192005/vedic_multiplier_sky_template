@@ -1,7 +1,9 @@
 name: gds
+
 on:
   push:
   workflow_dispatch:
+
 jobs:
   gds:
     runs-on: ubuntu-24.04
@@ -15,6 +17,7 @@ jobs:
         with:
           pdk: sky130
           tools-ref: ttsky25a
+
   precheck:
     needs: gds
     runs-on: ubuntu-24.04
@@ -28,6 +31,7 @@ jobs:
         with:
           pdk: sky130
           tools-ref: ttsky25a
+
   gl_test:
     needs: gds
     runs-on: ubuntu-24.04
@@ -41,6 +45,7 @@ jobs:
         with:
           pdk: sky130
           tools-ref: ttsky25a
+
   viewer:
     needs: gds
     runs-on: ubuntu-24.04
@@ -55,15 +60,24 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
       - name: Generate Viewer
         uses: TinyTapeout/tt-gds-action/viewer@ttsky25a
         with:
           pdk: sky130
           tools-ref: ttsky25a
+
+      - name: Ensure viewer directory exists
+        run: mkdir -p viewer
+
+      - name: List viewer contents (debug)
+        run: ls -la viewer
+
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./viewer
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
