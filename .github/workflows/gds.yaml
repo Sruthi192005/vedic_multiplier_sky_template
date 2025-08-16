@@ -2,13 +2,14 @@ name: gds
 
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
 jobs:
   gds:
     runs-on: ubuntu-24.04
     steps:
-      - name: checkout repo
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -23,6 +24,11 @@ jobs:
     needs: gds
     runs-on: ubuntu-24.04
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
       - name: Run Tiny Tapeout Precheck
         uses: TinyTapeout/tt-gds-action/precheck@ttsky25a
         with:
@@ -33,15 +39,43 @@ jobs:
     needs: gds
     runs-on: ubuntu-24.04
     steps:
-      - name: checkout repo
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: GL test
-        uses: TinyTapeout/tt-gds-action/gl_test@ttsky25a
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+          pip install cocotb
+
+      - name: Install PDK
+        run: |
+          pip install volare
+          volare enable fa87f8f4bbcc7255b6f0c0fb506960f531ae2392
+          PDK_PATH=$(volare path fa87f8f4bbcc7255b6f0c0fb506960f531ae2392)
+          echo "PDK Path: $PDK_PATH"
+          mkdir -p dependencies
+          cp -r $PDK_PATH dependencies/sky130
+
+      - name: Run GL test
+        run: make GATES=yes -C test
+        env:
+          GATES: "yes"
+          PDK_TYPE: "sky130"
+          COCOTB_RESOLVE_X: "ZEROS"
+
+      - name: Create dummy results.xml (on failure)
+        if: failure()
+        run: |
+          mkdir -p test
+          echo "<testsuite></testsuite>" > test/results.xml
+
+      - name: Upload test summary
+        uses: test-summary/action@v2.3
         with:
-          pdk: sky130
+          paths: test/results.xml
 
   viewer:
     needs: gds
@@ -57,7 +91,7 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Generate Viewer
+      - name: Run Viewer
         uses: TinyTapeout/tt-gds-action/viewer@ttsky25a
         with:
           pdk: sky130
@@ -68,13 +102,14 @@ jobs:
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./viewer  # Update this if `ls -R` shows a different path
+          path: gh-pages
 
   deploy:
     needs: viewer
     runs-on: ubuntu-24.04
     environment:
       name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       pages: write
       id-token: write
