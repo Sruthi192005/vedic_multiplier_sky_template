@@ -46,6 +46,8 @@ jobs:
   viewer:
     needs: gds
     runs-on: ubuntu-24.04
+    environment:
+      name: github-pages  # ✅ Added this to fix deployment error
     permissions:
       pages: write
       id-token: write
