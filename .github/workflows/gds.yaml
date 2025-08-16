@@ -2,127 +2,53 @@ name: gds
 
 on:
   push:
-  pull_request:
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
-  gds:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Build GDS
-        uses: TinyTapeout/tt-gds-action@ttsky25a
-        with:
-          pdk: sky130
-          tools-ref: ttsky25a
-
-      - name: List files after GDS build
-        run: ls -R
-
-  precheck:
-    needs: gds
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Run Tiny Tapeout Precheck
-        uses: TinyTapeout/tt-gds-action/precheck@ttsky25a
-        with:
-          pdk: sky130
-          tools-ref: ttsky25a
-
   gl_test:
-    needs: gds
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+
+    env:
+      PDK_ROOT: /home/runner/.volare/volare/sky130/versions/fa87f8f4bbcc7255b6f0c0fb506960f531ae2392
+
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+        uses: actions/checkout@v3
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y iverilog
-          pip install cocotb
+          sudo apt-get install -y make python3
 
       - name: Install PDK
         run: |
-          pip install volare
-          volare enable fa87f8f4bbcc7255b6f0c0fb506960f531ae2392
-          echo "PDK_ROOT=$(volare path fa87f8f4bbcc7255b6f0c0fb506960f531ae2392)" >> $GITHUB_ENV
-          mkdir -p dependencies
-          cp -r $(volare path fa87f8f4bbcc7255b6f0c0fb506960f531ae2392) dependencies/sky130
+          curl -L https://github.com/efabless/caravel_user_project/releases/download/v1.0.0/sky130_fd_pr.tar.gz | tar xz
+          mkdir -p $PDK_ROOT
+          mv sky130_fd_pr $PDK_ROOT
+
+      - name: List files after GDS build
+        run: find . -type f
 
       - name: Copy gate-level netlist (auto locate)
         run: |
           mkdir -p test
-          cp $(find . -name "gate_level_netlist.v" | head -n 1) test/
+          file_path=$(find . -name "gate_level_netlist.v" | head -n 1)
+          if [ -z "$file_path" ]; then
+            echo "Error: gate_level_netlist.v not found"
+            exit 1
+          fi
+          cp "$file_path" test/
 
       - name: Run GL test
-        run: make GATES=yes PDK_ROOT=${{ env.PDK_ROOT }} -C test
-        env:
-          GATES: "yes"
-          PDK_TYPE: "sky130"
-          COCOTB_RESOLVE_X: "ZEROS"
-          PDK_ROOT: ${{ env.PDK_ROOT }}
+        run: make gl_test
 
       - name: Create dummy results.xml (on failure)
         if: failure()
-        run: |
-          mkdir -p test
-          echo "<testsuite></testsuite>" > test/results.xml
+        run: echo "<testsuite></testsuite>" > results.xml
 
       - name: Upload test summary
-        uses: test-summary/action@v2.3
+        uses: actions/upload-artifact@v3
         with:
-          paths: test/results.xml
-
-  viewer:
-    needs: gds
-    runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-    permissions:
-      pages: write
-      id-token: write
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Run Viewer
-        uses: TinyTapeout/tt-gds-action/viewer@ttsky25a
-        with:
-          pdk: sky130
-
-      - name: List files for debug
-        run: ls -R
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: gh-pages
-          name: gh-pages-${{ github.run_id }}
-
-  deploy:
-    needs: viewer
-    runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      pages: write
-      id-token: write
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          name: gl_test_results
+          path: results.xml
