@@ -20,6 +20,9 @@ jobs:
           pdk: sky130
           tools-ref: ttsky25a
 
+      - name: List files after GDS build
+        run: ls -R
+
   precheck:
     needs: gds
     runs-on: ubuntu-24.04
@@ -58,6 +61,7 @@ jobs:
           mkdir -p dependencies
           cp -r $(volare path fa87f8f4bbcc7255b6f0c0fb506960f531ae2392) dependencies/sky130
 
+      # 🔍 Update this path once you know where gate_level_netlist.v is
       - name: Copy gate-level netlist
         run: cp gate_level_netlist.v test/
 
