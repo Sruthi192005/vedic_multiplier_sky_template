@@ -2,53 +2,73 @@ name: gds
 
 on:
   push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
-  gl_test:
-    runs-on: ubuntu-latest
-
-    env:
-      PDK_ROOT: /home/runner/.volare/volare/sky130/versions/fa87f8f4bbcc7255b6f0c0fb506960f531ae2392
-
+  gds:
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y make python3
-
-      - name: Install PDK
-        run: |
-          curl -L https://github.com/efabless/caravel_user_project/releases/download/v1.0.0/sky130_fd_pr.tar.gz | tar xz
-          mkdir -p $PDK_ROOT
-          mv sky130_fd_pr $PDK_ROOT
-
-      - name: List files after GDS build
-        run: find . -type f
-
-      - name: Copy gate-level netlist (auto locate)
-        run: |
-          mkdir -p test
-          file_path=$(find . -name "gate_level_netlist.v" | head -n 1)
-          if [ -z "$file_path" ]; then
-            echo "Error: gate_level_netlist.v not found"
-            exit 1
-          fi
-          cp "$file_path" test/
-
-      - name: Run GL test
-        run: make gl_test
-
-      - name: Create dummy results.xml (on failure)
-        if: failure()
-        run: echo "<testsuite></testsuite>" > results.xml
-
-      - name: Upload test summary
-        uses: actions/upload-artifact@v3
+      - name: checkout repo
+        uses: actions/checkout@v4
         with:
-          name: gl_test_results
-          path: results.xml
+          submodules: recursive
+
+      - name: Build GDS
+        uses: TinyTapeout/tt-gds-action@ttsky25a
+        with:
+          pdk: sky130
+          tools-ref: ttsky25a
+
+  precheck:
+    needs: gds
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run Tiny Tapeout Precheck
+        uses: TinyTapeout/tt-gds-action/precheck@ttsky25a
+        with:
+          pdk: sky130
+          tools-ref: ttsky25a
+
+  gl_test:
+    needs: gds
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: GL test
+        uses: TinyTapeout/tt-gds-action/gl_test@ttsky25a
+        with:
+          pdk: sky130
+
+  viewer:
+    needs: gds
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Generate Viewer
+        uses: TinyTapeout/tt-gds-action/viewer@ttsky25a
+        with:
+          pdk: sky130
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./viewer
+
+  deploy:
+    needs: viewer
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
