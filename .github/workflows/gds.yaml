@@ -58,6 +58,9 @@ jobs:
           mkdir -p dependencies
           cp -r $(volare path fa87f8f4bbcc7255b6f0c0fb506960f531ae2392) dependencies/sky130
 
+      - name: Copy gate-level netlist
+        run: cp gate_level_netlist.v test/
+
       - name: Run GL test
         run: make GATES=yes PDK_ROOT=${{ env.PDK_ROOT }} -C test
         env:
