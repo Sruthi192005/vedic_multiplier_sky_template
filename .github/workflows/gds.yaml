@@ -54,17 +54,17 @@ jobs:
         run: |
           pip install volare
           volare enable fa87f8f4bbcc7255b6f0c0fb506960f531ae2392
-          echo "PDK_PATH=$(volare path fa87f8f4bbcc7255b6f0c0fb506960f531ae2392)" >> $GITHUB_ENV
+          echo "PDK_ROOT=$(volare path fa87f8f4bbcc7255b6f0c0fb506960f531ae2392)" >> $GITHUB_ENV
           mkdir -p dependencies
           cp -r $(volare path fa87f8f4bbcc7255b6f0c0fb506960f531ae2392) dependencies/sky130
 
       - name: Run GL test
-        run: make GATES=yes -C test
+        run: make GATES=yes PDK_ROOT=${{ env.PDK_ROOT }} -C test
         env:
           GATES: "yes"
           PDK_TYPE: "sky130"
           COCOTB_RESOLVE_X: "ZEROS"
-          PDK_PATH: ${{ env.PDK_PATH }}
+          PDK_ROOT: ${{ env.PDK_ROOT }}
 
       - name: Create dummy results.xml (on failure)
         if: failure()
