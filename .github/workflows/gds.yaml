@@ -4,6 +4,12 @@ on:
   push:
   workflow_dispatch:
 
+# ✅ Required for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   gds:
     runs-on: ubuntu-24.04
