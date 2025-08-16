@@ -43,19 +43,16 @@ jobs:
         with:
           pdk: sky130
 
- viewer:
+viewer:
     needs: gds
     runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
     permissions:
-      pages: write
-      id-token: write
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: TinyTapeout/tt-gds-action/viewer@ttsky25a
         with:
-          submodules: recursive
+          pdk: sky130
       - name: Run Viewer
         uses: TinyTapeout/tt-gds-action/viewer@ttsky25a
         with:
