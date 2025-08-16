@@ -47,6 +47,9 @@ jobs:
     permissions:
       pages: write
       id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
@@ -61,15 +64,6 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./viewer
-  deploy:
-    needs: viewer
-    runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-    permissions:
-      pages: write
-      id-token: write
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
