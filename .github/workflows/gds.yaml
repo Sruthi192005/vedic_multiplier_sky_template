@@ -67,17 +67,9 @@ jobs:
           pdk: sky130
           tools-ref: ttsky25a
 
-      - name: Ensure viewer directory exists
-        run: mkdir -p viewer
-
-      - name: List viewer contents (debug)
-        run: ls -la viewer
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          name: github-pages   # required name
-          path: ./viewer
+      # Debug only (optional) — does not conflict
+      - name: List viewer contents
+        run: ls -la viewer || true
 
   deploy:
     needs: viewer
