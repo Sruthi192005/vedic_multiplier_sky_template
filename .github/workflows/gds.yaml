@@ -41,7 +41,7 @@ jobs:
         with:
           pdk: sky130
           tools-ref: ttsky25a
-  pages:
+  viewer:
     needs: gds
     runs-on: ubuntu-24.04
     permissions:
@@ -60,37 +60,10 @@ jobs:
         with:
           pdk: sky130
           tools-ref: ttsky25a
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      - name: Prepare viewer files
-        run: |
-          echo "Current directory contents:"
-          ls -la
-          
-          # Create a pages directory for deployment
-          mkdir -p _site
-          
-          # Look for generated viewer files
-          if [ -d "viewer" ]; then
-            echo "Found viewer directory, copying contents"
-            cp -r viewer/* _site/
-          elif [ -f "index.html" ]; then
-            echo "Found index.html in root, copying to _site"
-            cp *.html _site/ 2>/dev/null || true
-            cp -r assets _site/ 2>/dev/null || true
-            cp -r css _site/ 2>/dev/null || true
-            cp -r js _site/ 2>/dev/null || true
-          else
-            echo "No viewer files found, creating placeholder"
-            echo "<html><head><title>GDS Viewer</title></head><body><h1>GDS Layout Viewer</h1><p>No viewer files were generated.</p></body></html>" > _site/index.html
-          fi
-          
-          echo "Contents of _site directory:"
-          ls -la _site/
-      - name: Upload artifact
+      - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./_site
+          path: ./viewer
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
